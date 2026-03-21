@@ -3,10 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Receipt, Search, FileText } from 'lucide-react';
 import dayjs from 'dayjs';
 import api from '@/services/api';
-import { formatNPR, formatDateTime } from '@/utils/formatters';
+import { formatNPR, formatDateTime, formatDate } from '@/utils/formatters';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import Modal from '@/components/ui/Modal';
 
 const SaleHistory = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,7 +20,7 @@ const SaleHistory = () => {
 
   const { data: saleDetail, isLoading: isLoadingDetail } = useQuery({
     queryKey: ['sale', selectedSaleId],
-    queryFn: () => api.get(`/sales/${selectedSaleId}`).then(res => res.data.data),
+    queryFn: () => api.get(`/sales/${selectedSaleId}`).then(res => res.data),
     enabled: !!selectedSaleId,
   });
 

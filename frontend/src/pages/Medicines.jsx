@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Filter, Edit2, Trash2, PackagePlus, MoreVertical, Save, AlertCircle, Settings, Image as ImageIcon, Building2, ChevronDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
+import dayjs from 'dayjs';
 import api from '@/services/api';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -700,10 +701,9 @@ const AddStockForm = ({ medicine, onSuccess }) => {
   });
 
   const generateBatch = () => {
-    const prefix = medicine.name?.substring(0, 2).toUpperCase() || 'BN';
-    const date = dayjs().format('YYMMDD');
-    const rand = Math.floor(Math.random() * 999).toString().padStart(3, '0');
-    setValue('batchNumber', `${prefix}-${date}-${rand}`);
+    const prefix = medicine.name?.substring(0, 3).toUpperCase() || 'MED';
+    const date = dayjs().format('DDMMYY');
+    setValue('batchNumber', `${prefix}-${date}`);
   };
 
   React.useEffect(() => {

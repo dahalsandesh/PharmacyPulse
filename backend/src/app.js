@@ -46,20 +46,21 @@ cron.schedule('0 7 * * *', expiryAlertJob, { timezone: 'Asia/Kathmandu' });
 cron.schedule('0 */6 * * *', lowStockAlertJob, { timezone: 'Asia/Kathmandu' });
 cron.schedule('59 23 * * *', dailyReportJob, { timezone: 'Asia/Kathmandu' });
 
-// Connect to MongoDB and start server
-const PORT = process.env.PORT || 5000;
-
+// Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('✅ Connected to MongoDB Atlas');
-    app.listen(PORT, () => {
-      console.log(`🚀 PharmacyPulse API running on port ${PORT}`);
-      console.log(`📋 Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
+    // Start listening only if NOT on Vercel (Vercel handles the execution)
+    if (require.main === module && !process.env.VERCEL) {
+      const PORT = process.env.PORT || 5000;
+      app.listen(PORT, () => {
+        console.log(`🚀 PharmacyPulse API running on port ${PORT}`);
+        console.log(`📋 Environment: ${process.env.NODE_ENV || 'development'}`);
+      });
+    }
   })
   .catch(err => {
     console.error('❌ MongoDB connection failed:', err.message);
-    process.exit(1);
   });
 
 module.exports = app;

@@ -20,7 +20,7 @@ const Login = () => {
       const res = await api.post('/auth/login', data);
       setAuth(res.data.user, res.data.token);
       toast.success('Login successful');
-      
+
       if (res.data.user.role === 'superadmin') {
         navigate('/admin');
       } else {
@@ -89,9 +89,9 @@ const Login = () => {
                 Sign in
               </Button>
             </div>
-            
+
             <div className="mt-4 text-center text-xs text-gray-500">
-              Demo: admin@medstore.com / admin123
+              Demo: ram@medstore.com / admin123
             </div>
           </form>
         </div>

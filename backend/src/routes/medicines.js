@@ -38,6 +38,50 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// GET /api/medicines/categories
+router.get('/categories', async (req, res, next) => {
+  try {
+    const pharmacyId = req.user.pharmacyId;
+    const categories = await Medicine.distinct('category', { pharmacyId });
+    res.json({ success: true, data: categories });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/medicines/types
+router.get('/types', async (req, res, next) => {
+  try {
+    const pharmacyId = req.user.pharmacyId;
+    const types = await Medicine.distinct('type', { pharmacyId });
+    res.json({ success: true, data: types });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/medicines/manufacturers
+router.get('/manufacturers', async (req, res, next) => {
+  try {
+    const pharmacyId = req.user.pharmacyId;
+    const items = await Medicine.distinct('manufacturer', { pharmacyId });
+    res.json({ success: true, data: items });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/medicines/units
+router.get('/units', async (req, res, next) => {
+  try {
+    const pharmacyId = req.user.pharmacyId;
+    const units = await Medicine.distinct('unit', { pharmacyId });
+    res.json({ success: true, data: units });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/medicines
 router.post('/', async (req, res, next) => {
   try {
@@ -97,6 +141,24 @@ router.put('/:id', async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Medicine not found' });
     }
     res.json({ success: true, data: medicine });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/medicines/:id
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const medicine = await Medicine.findOneAndDelete({
+      _id: req.params.id,
+      pharmacyId: req.user.pharmacyId
+    });
+    
+    if (!medicine) {
+      return res.status(404).json({ success: false, message: 'Medicine not found' });
+    }
+    
+    res.json({ success: true, message: 'Medicine deleted successfully' });
   } catch (err) {
     next(err);
   }

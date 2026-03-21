@@ -12,7 +12,13 @@ router.post('/', async (req, res, next) => {
   try {
     const pharmacyId = req.user.pharmacyId;
     const { medicineId, supplierId, batchNumber, expiryDate, purchaseDate,
-      purchasePrice, sellingPrice, initialQuantity, notes } = req.body;
+      purchasePrice, sellingPrice, initialQuantity, quantity, notes } = req.body;
+
+    const finalQuantity = initialQuantity || quantity;
+
+    if (finalQuantity === undefined || finalQuantity === null) {
+      return res.status(400).json({ success: false, message: 'Quantity is required' });
+    }
 
     // Verify medicine belongs to pharmacy
     const medicine = await Medicine.findOne({ _id: medicineId, pharmacyId });
@@ -32,13 +38,13 @@ router.post('/', async (req, res, next) => {
       pharmacyId,
       medicineId,
       supplierId,
-      batchNumber,
+      batchNumber: batchNumber.toUpperCase(),
       expiryDate: parsedExpiry,
       purchaseDate: purchaseDate || new Date(),
       purchasePrice,
-      sellingPrice,
-      initialQuantity,
-      quantity: initialQuantity,
+      sellingPrice: sellingPrice || medicine.sellingPrice, // Fallback to medicine's current price
+      initialQuantity: finalQuantity,
+      quantity: finalQuantity,
       notes,
     });
 

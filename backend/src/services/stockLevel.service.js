@@ -23,12 +23,17 @@ async function getMedicineWithStock(medicineId) {
   }).sort({ expiryDate: 1 });
 
   const currentStock = batches.reduce((sum, b) => sum + b.quantity, 0);
+  const totalPurchaseValue = batches.reduce((sum, b) => sum + (b.purchasePrice * b.quantity), 0);
+  const avgPurchasePrice = currentStock > 0 ? totalPurchaseValue / currentStock : 0;
+  
   const nearestExpiry = batches.length > 0 ? batches[0].expiryDate : null;
   const stockStatus = getStockStatus(currentStock, medicine);
 
   return {
     ...medicine.toObject(),
     currentStock,
+    totalQuantity: currentStock, // Alias for frontend consistency
+    avgPurchasePrice,
     nearestExpiry,
     stockStatus,
     activeBatches: batches,
@@ -59,12 +64,17 @@ async function getAllMedicinesWithStock(pharmacyId, filters = {}) {
       }).sort({ expiryDate: 1 });
 
       const currentStock = batches.reduce((sum, b) => sum + b.quantity, 0);
+      const totalPurchaseValue = batches.reduce((sum, b) => sum + (b.purchasePrice * b.quantity), 0);
+      const avgPurchasePrice = currentStock > 0 ? totalPurchaseValue / currentStock : 0;
+      
       const nearestExpiry = batches.length > 0 ? batches[0].expiryDate : null;
       const stockStatus = getStockStatus(currentStock, med);
 
       return {
         ...med.toObject(),
         currentStock,
+        totalQuantity: currentStock,
+        avgPurchasePrice,
         nearestExpiry,
         stockStatus,
       };

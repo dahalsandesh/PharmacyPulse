@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import { 
   TrendingUp, 
@@ -8,9 +9,6 @@ import {
   AlertTriangle, 
   X,
   ArrowRight,
-  Package,
-  Activity,
-  DollarSign 
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -22,12 +20,15 @@ import {
   Cell 
 } from 'recharts';
 import api from '@/services/api';
-import { formatNPR, formatDate, getExpiryStatus } from '@/utils/formatters';
+import { formatNPR, formatDate } from '@/utils/formatters';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { useAuthStore } from '@/stores/authStore';
 
 const Dashboard = () => {
   const [showAlerts, setShowAlerts] = useState(true);
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboardData'],
@@ -62,18 +63,11 @@ const Dashboard = () => {
         <h1 className="text-[20px] font-semibold text-medstore-text-main">Dashboard</h1>
         
         <div className="flex-1 max-w-md mx-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search medicine..." 
-              className="w-full bg-gray-50 border border-gray-200 rounded-md py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-medstore-teal focus:border-medstore-teal transition-all"
-            />
-          </div>
+          {/* Global search placeholder */}
         </div>
 
         <div className="text-sm font-medium text-medstore-text-muted hidden md:block">
-          {dayjs().format('ddd, D MMM YYYY')} · Kathmandu
+          {formatDate(new Date())} · {user?.pharmacyId?.address || 'Kathmandu'}
         </div>
       </div>
 
@@ -88,7 +82,12 @@ const Dashboard = () => {
             </span>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="ghostTeal" size="sm" className="bg-white border-transparent text-sm h-8 hidden sm:flex">
+            <Button 
+              variant="ghostTeal" 
+              size="sm" 
+              onClick={() => navigate('/medicines')} 
+              className="bg-white border-transparent text-sm h-8 hidden sm:flex"
+            >
               View All Alerts
             </Button>
             <button onClick={() => setShowAlerts(false)} className="text-amber-500 hover:text-amber-700 transition">

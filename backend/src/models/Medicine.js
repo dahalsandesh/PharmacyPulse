@@ -7,16 +7,22 @@ const medicineSchema = new Schema({
   genericName: { type: String, trim: true },
   category: {
     type: String,
-    enum: ['antibiotic', 'antacid', 'analgesic', 'vitamin', 'ors', 'antihypertensive',
-      'antidiabetic', 'antifungal', 'antiparasitic', 'other'],
-    default: 'other'
+    default: 'other',
+    trim: true
   },
-  manufacturer: { type: String },
+  type: {
+    type: String,
+    default: 'tablet',
+    trim: true
+  },
+  manufacturer: { type: String, trim: true },
+  image: { type: String, trim: true },
   unit: {
     type: String,
-    enum: ['tablet', 'capsule', 'ml', 'mg', 'sachet', 'strip', 'bottle', 'vial'],
-    default: 'tablet'
+    default: 'tablet',
+    trim: true
   },
+  sellingPrice: { type: Number, default: 0 },
   lowStockThreshold: { type: Number, required: true, default: 10 },
   highStockThreshold: { type: Number, default: 500 },
   isActive: { type: Boolean, default: true },

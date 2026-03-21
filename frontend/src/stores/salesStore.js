@@ -22,6 +22,10 @@ export const useSalesStore = create((set, get) => ({
     set(s => ({
       cart: s.cart.map(i => i.medicineId === medicineId ? { ...i, quantity } : i)
     })),
+  updatePrice: (medicineId, unitPrice) =>
+    set(s => ({
+      cart: s.cart.map(i => i.medicineId === medicineId ? { ...i, unitPrice } : i)
+    })),
   removeFromCart: (medicineId) => 
     set(s => ({ cart: s.cart.filter(i => i.medicineId !== medicineId) })),
   clearCart: () => set({ cart: [] }),

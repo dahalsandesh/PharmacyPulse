@@ -10,8 +10,6 @@ import Medicines from '@/pages/Medicines';
 import NewSale from '@/pages/NewSale';
 import AdminPharmacies from '@/pages/AdminPharmacies';
 import Profile from '@/pages/Profile';
-import AddMedicine from '@/pages/AddMedicine';
-import AddStock from '@/pages/AddStock';
 import SaleHistory from '@/pages/SaleHistory';
 import DamageLog from '@/pages/DamageLog';
 import Reports from '@/pages/Reports';
@@ -35,9 +33,6 @@ function App() {
             <Route index element={<Dashboard />} />
             {/* Pharmacy Staff Routes */}
             <Route path="medicines" element={<Medicines />} />
-            <Route path="medicines/new" element={<AddMedicine />} />
-            {/* <Route path="medicines/:id" element={<MedicineDetail />} /> */}
-            <Route path="stock/new" element={<AddStock />} />
             <Route path="sales/history" element={<SaleHistory />} />
             <Route path="sales" element={<NewSale />} />
             <Route path="damage" element={<DamageLog />} />

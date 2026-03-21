@@ -10,16 +10,19 @@ import { Input } from '@/components/ui/Input';
 
 const NewSale = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [discountVal, setDiscountVal] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useSalesStore();
+  const { cart, addToCart, removeFromCart, updateQuantity, updatePrice, clearCart } = useSalesStore();
 
   const { data: searchResults, isLoading: isSearching } = useQuery({
     queryKey: ['medicinesSearch', searchTerm],
-    queryFn: () => api.get(`/medicines?search=${searchTerm}&limit=10`),
-    enabled: searchTerm.length > 1,
+    queryFn: () => {
+      if (searchTerm.length === 1) return [];
+      return api.get(`/medicines?search=${searchTerm}&limit=20`).then(res => res.data);
+    },
   });
 
   const handleAddToCart = (medicine) => {
@@ -32,11 +35,12 @@ const NewSale = () => {
       medicineId: medicine._id,
       medicineName: medicine.name,
       availableStock: medicine.currentStock,
-      unitPrice: medicine.activeBatches?.[0]?.sellingPrice || 0, // Simplified: using oldest batch price
+      unitPrice: medicine.sellingPrice || 0,
       nearestExpiry: medicine.nearestExpiry,
       quantity: 1
     });
     setSearchTerm('');
+    setIsSearchFocused(false);
   };
 
   const handleCheckout = async () => {
@@ -65,17 +69,18 @@ const NewSale = () => {
   const discountAmount = parseFloat(discountVal) || 0;
   const total = Math.max(0, subtotal - discountAmount);
   
-  // Checking for FIFO visual warnings (dummy logic for spec matching)
   const hasExpiryWarning = cart.some(i => i.nearestExpiry && new Date(i.nearestExpiry).getTime() < new Date().getTime() + 30*24*60*60*1000);
 
+  const handleBlur = () => setTimeout(() => setIsSearchFocused(false), 200);
+
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
+    <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-8rem)]">
       
       {/* Left Panel: Cart & Search */}
-      <div className="flex-1 flex flex-col bg-white rounded-xl border border-medstore-border card-shadow overflow-hidden">
+      <div className="flex-1 flex flex-col bg-white rounded-xl border border-medstore-border card-shadow overflow-hidden min-h-[400px]">
         
         {/* Search Header */}
-        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+        <div className="p-4 border-b border-gray-100 bg-gray-50/50 relative z-20">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
@@ -83,29 +88,37 @@ const NewSale = () => {
               placeholder="Search medicine name or generic name..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={handleBlur}
               className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-medstore-teal focus:border-transparent transition-all shadow-sm"
             />
             
             {/* Autocomplete Dropdown */}
-            {searchTerm.length > 1 && (
-              <div className="absolute top-12 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-10 max-h-60 overflow-y-auto">
+            {isSearchFocused && (searchTerm.length === 0 || searchTerm.length > 1) && (
+              <div className="absolute top-12 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-y-auto w-full">
+                <div className="p-2 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {searchTerm ? 'Search Results' : 'Available Medicines'}
+                </div>
                 {isSearching ? (
-                  <div className="p-4 text-sm text-gray-500 text-center">Searching...</div>
-                ) : searchResults?.data?.length === 0 ? (
+                  <div className="p-4 text-sm text-gray-500 text-center">Loading medicines...</div>
+                ) : !searchResults || searchResults.length === 0 ? (
                   <div className="p-4 text-sm text-gray-500 text-center">No medicines found</div>
                 ) : (
-                  searchResults?.data?.map(med => (
+                  searchResults.map(med => (
                     <button 
                       key={med._id}
-                      onClick={() => handleAddToCart(med)}
+                      onMouseDown={(e) => {
+                        e.preventDefault(); // Prevent blur before click
+                        handleAddToCart(med);
+                      }}
                       className="w-full text-left p-3 border-b border-gray-50 hover:bg-gray-50 flex items-center justify-between transition-colors focus:bg-gray-50 outline-none"
                     >
                       <div>
                         <div className="font-semibold text-gray-900">{med.name}</div>
                         <div className="text-xs text-gray-500 mt-0.5">{med.currentStock} {med.unit} left</div>
                       </div>
-                      <div className="text-medstore-teal font-medium">
-                        {formatNPR(med.activeBatches?.[0]?.sellingPrice || 0)}
+                      <div className="text-medstore-teal font-medium tabular-nums">
+                        {formatNPR(med.sellingPrice || 0)}
                       </div>
                     </button>
                   ))
@@ -116,67 +129,76 @@ const NewSale = () => {
         </div>
 
         {/* Cart Area */}
-        <div className="flex-1 overflow-y-auto p-0">
+        <div className="flex-1 overflow-auto p-0 min-h-[300px]">
           {cart.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-400">
+            <div className="h-full py-12 flex flex-col items-center justify-center text-gray-400">
               <ShoppingCart size={48} className="text-gray-200 mb-4" />
               <p className="text-lg font-medium text-gray-900">Sale Cart is Empty</p>
               <p className="text-sm mt-1">Search for a medicine above to add it to the cart</p>
             </div>
           ) : (
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="bg-gray-50/30 border-b border-gray-100 text-gray-500 font-medium tracking-wide">
-                  <th className="py-3 px-5">Medicine</th>
-                  <th className="py-3 px-4 w-28 text-center">Qty</th>
-                  <th className="py-3 px-4 text-right">Unit Price</th>
-                  <th className="py-3 px-5 text-right font-semibold text-gray-900">Total</th>
-                  <th className="py-3 px-4 w-12 text-center"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {cart.map((item) => (
-                  <tr key={item.medicineId} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="py-4 px-5">
-                      <div className="font-semibold text-gray-900">{item.medicineName}</div>
-                      {/* Fake expiry warning display based on spec */}
-                      {new Date(item.nearestExpiry).getTime() < new Date().getTime() + 30*24*60*60*1000 && (
-                        <div className="text-xs font-semibold text-amber-600 mt-1 flex items-center bg-amber-50 px-2 py-0.5 rounded w-fit">
-                          <AlertCircle size={10} className="mr-1" />
-                          Expiring Soon
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center justify-center">
-                        <input 
-                          type="number" 
-                          min="1"
-                          max={item.availableStock}
-                          value={item.quantity}
-                          onChange={(e) => updateQuantity(item.medicineId, parseInt(e.target.value) || 1)}
-                          className="w-16 text-center border border-gray-300 rounded-md py-1.5 focus:ring-1 focus:ring-medstore-teal focus:border-medstore-teal outline-none"
-                        />
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right text-gray-600">
-                      {formatNPR(item.unitPrice)}
-                    </td>
-                    <td className="py-3 px-5 text-right font-semibold text-gray-900 text-base">
-                      {formatNPR(item.unitPrice * item.quantity)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <button 
-                        onClick={() => removeFromCart(item.medicineId)}
-                        className="text-gray-400 hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse text-sm min-w-[500px]">
+                <thead>
+                  <tr className="bg-gray-50/30 border-b border-gray-100 text-gray-500 font-medium tracking-wide">
+                    <th className="py-3 px-5">Medicine</th>
+                    <th className="py-3 px-4 w-28 text-center">Qty</th>
+                    <th className="py-3 px-4 text-right">Unit Price</th>
+                    <th className="py-3 px-5 text-right font-semibold text-gray-900">Total</th>
+                    <th className="py-3 px-4 w-12 text-center"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {cart.map((item) => (
+                    <tr key={item.medicineId} className="border-b border-gray-50 hover:bg-gray-50/50">
+                      <td className="py-4 px-5">
+                        <div className="font-semibold text-gray-900">{item.medicineName}</div>
+                        {item.nearestExpiry && new Date(item.nearestExpiry).getTime() < new Date().getTime() + 30*24*60*60*1000 && (
+                          <div className="text-xs font-semibold text-amber-600 mt-1 flex items-center bg-amber-50 px-2 py-0.5 rounded w-fit">
+                            <AlertCircle size={10} className="mr-1" />
+                            Expiring Soon
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center justify-center">
+                          <input 
+                            type="number" 
+                            min="1"
+                            max={item.availableStock}
+                            value={item.quantity}
+                            onChange={(e) => updateQuantity(item.medicineId, parseInt(e.target.value) || 1)}
+                            className="w-16 text-center border border-gray-300 rounded-md py-1.5 focus:ring-1 focus:ring-medstore-teal focus:border-medstore-teal outline-none"
+                          />
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex justify-end">
+                          <input 
+                            type="number" 
+                            step="0.01"
+                            value={item.unitPrice}
+                            onChange={(e) => updatePrice(item.medicineId, parseFloat(e.target.value) || 0)}
+                            className="w-20 text-right border-b border-dashed border-gray-300 hover:border-medstore-teal focus:border-medstore-teal outline-none py-1 text-gray-800 font-medium bg-transparent"
+                          />
+                        </div>
+                      </td>
+                      <td className="py-3 px-5 text-right font-semibold text-gray-900 text-base">
+                        {formatNPR(item.unitPrice * item.quantity)}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <button 
+                          onClick={() => removeFromCart(item.medicineId)}
+                          className="text-gray-400 hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
@@ -194,7 +216,7 @@ const NewSale = () => {
 
       {/* Right Panel: Summary */}
       <div className="w-full lg:w-96 flex flex-col shrink-0">
-        <div className="bg-white rounded-xl border border-medstore-border card-shadow flex flex-col sticky top-6">
+        <div className="bg-white rounded-xl border border-medstore-border card-shadow flex flex-col lg:sticky lg:top-6">
           <div className="p-5 border-b border-gray-100">
             <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
           </div>
@@ -223,7 +245,7 @@ const NewSale = () => {
             
             <div className="flex justify-between items-end">
               <span className="text-base font-semibold text-gray-900">Total</span>
-              <span className="text-3xl font-bold text-medstore-teal tracking-tight">{formatNPR(total)}</span>
+              <span className="text-2xl sm:text-3xl font-bold text-medstore-teal tracking-tight">{formatNPR(total)}</span>
             </div>
 
             <div className="pt-4 space-y-3">

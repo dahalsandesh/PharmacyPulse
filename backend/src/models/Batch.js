@@ -9,7 +9,7 @@ const batchSchema = new Schema({
   expiryDate: { type: Date, required: true, index: true },
   purchaseDate: { type: Date, default: Date.now },
   purchasePrice: { type: Number, required: true, min: 0 },
-  sellingPrice: { type: Number, required: true, min: 0 },
+  sellingPrice: { type: Number, min: 0 }, // Deprecated in favor of Medicine.sellingPrice, but kept for historical/override
   initialQuantity: { type: Number, required: true, min: 1 },
   quantity: { type: Number, required: true, min: 0 },
   status: {

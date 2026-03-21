@@ -699,6 +699,17 @@ const AddStockForm = ({ medicine, onSuccess }) => {
     }
   });
 
+  const generateBatch = () => {
+    const prefix = medicine.name?.substring(0, 2).toUpperCase() || 'BN';
+    const date = dayjs().format('YYMMDD');
+    const rand = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+    setValue('batchNumber', `${prefix}-${date}-${rand}`);
+  };
+
+  React.useEffect(() => {
+    generateBatch();
+  }, [medicine._id]);
+
   const mutation = useMutation({
     mutationFn: (data) => api.post('/stock', { ...data, medicineId: medicine._id }),
     onSuccess: () => {
@@ -726,18 +737,22 @@ const AddStockForm = ({ medicine, onSuccess }) => {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-gray-500 uppercase">Batch Number</label>
-            <button 
-              type="button" 
-              onClick={() => {
-                const prefix = medicine.name?.substring(0,2).toUpperCase() || 'BN';
-                const date = dayjs().format('YYMMDD');
-                const rand = Math.floor(Math.random() * 999).toString().padStart(3, '0');
-                setValue('batchNumber', `${prefix}-${date}-${rand}`);
-              }}
-              className="text-[10px] text-medstore-teal hover:underline font-bold"
-            >
-              Auto-Generate
-            </button>
+            <div className="space-x-2 flex">
+              <button 
+                type="button" 
+                onClick={generateBatch}
+                className="text-[10px] text-medstore-teal hover:underline font-bold"
+              >
+                Auto-Generate
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setValue('batchNumber', '')}
+                className="text-[10px] text-red-500 hover:underline font-bold"
+              >
+                Clear
+              </button>
+            </div>
           </div>
           <Input {...register('batchNumber', { required: true })} placeholder="e.g. B12345" />
         </div>

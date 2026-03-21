@@ -10,10 +10,17 @@ import { Button } from '@/components/ui/Button';
 
 const SaleHistory = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSaleId, setSelectedSaleId] = useState(null);
   
   const { data, isLoading } = useQuery({
     queryKey: ['sales'],
     queryFn: () => api.get('/sales'),
+  });
+
+  const { data: saleDetail, isLoading: isLoadingDetail } = useQuery({
+    queryKey: ['sale', selectedSaleId],
+    queryFn: () => api.get(`/sales/${selectedSaleId}`).then(res => res.data.data),
+    enabled: !!selectedSaleId,
   });
 
   const sales = data?.data || [];
@@ -81,14 +88,14 @@ const SaleHistory = () => {
                       </Badge>
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      {sale.status === 'completed' ? (
-                        <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">Completed</div>
+                      {!sale.isVoided ? (
+                        <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 tracking-tight">Completed</div>
                       ) : (
-                        <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Voided</div>
+                        <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 tracking-tight">Voided</div>
                       )}
                     </td>
                     <td className="py-3.5 px-5 text-right space-x-2">
-                       <Button variant="ghostTeal" size="sm" className="h-8 shadow-sm">
+                       <Button variant="ghostTeal" size="sm" className="h-8 shadow-sm" onClick={() => setSelectedSaleId(sale._id)}>
                          View Details
                        </Button>
                     </td>
@@ -107,6 +114,86 @@ const SaleHistory = () => {
           </div>
         )}
       </div>
+
+      {/* SALE DETAILS MODAL */}
+      <Modal 
+        isOpen={!!selectedSaleId} 
+        onClose={() => setSelectedSaleId(null)} 
+        title={`Invoice ${saleDetail?.invoiceNumber}`}
+        maxWidth="max-w-2xl"
+      >
+        {isLoadingDetail ? (
+          <div className="p-12 text-center text-gray-400">Loading order details...</div>
+        ) : saleDetail ? (
+          <div className="p-1 space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-xl">
+              <div>
+                <label className="text-[10px] text-gray-400 uppercase font-bold">Date</label>
+                <div className="text-sm font-medium">{formatDate(saleDetail.saleDate)}</div>
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 uppercase font-bold">Payment</label>
+                <div className="text-sm font-medium uppercase">{saleDetail.paymentMethod}</div>
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 uppercase font-bold">Sold By</label>
+                <div className="text-sm font-medium">{saleDetail.soldBy?.name || 'N/A'}</div>
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 uppercase font-bold">Status</label>
+                <div>
+                   <Badge color={saleDetail.isVoided ? 'red' : 'green'}>
+                     {saleDetail.isVoided ? 'VOIDED' : 'COMPLETED'}
+                   </Badge>
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-hidden border border-gray-100 rounded-xl">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-gray-50/50">
+                  <tr className="text-gray-500 font-medium">
+                    <th className="py-3 px-4">Medicine</th>
+                    <th className="py-3 px-4 text-center">Qty</th>
+                    <th className="py-3 px-4 text-right">Price</th>
+                    <th className="py-3 px-4 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {saleDetail.items?.map((item, i) => (
+                    <tr key={i} className="border-t border-gray-50">
+                      <td className="py-3 px-4 font-medium text-gray-900">{item.medicineName}</td>
+                      <td className="py-3 px-4 text-center font-bold">{item.quantity}</td>
+                      <td className="py-3 px-4 text-right">{formatNPR(item.unitPrice)}</td>
+                      <td className="py-3 px-4 text-right font-bold">{formatNPR(item.lineTotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex flex-col items-end space-y-2 pr-4">
+              <div className="flex justify-between w-48 text-sm">
+                <span className="text-gray-500">Subtotal</span>
+                <span className="font-medium text-gray-900">{formatNPR(saleDetail.totalAmount + (saleDetail.discount || 0))}</span>
+              </div>
+              <div className="flex justify-between w-48 text-sm text-red-500">
+                <span>Discount</span>
+                <span>-{formatNPR(saleDetail.discount || 0)}</span>
+              </div>
+              <div className="flex justify-between w-48 text-lg font-bold text-medstore-teal border-t border-gray-100 pt-2">
+                <span>TOTAL</span>
+                <span>{formatNPR(saleDetail.totalAmount)}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 space-x-3">
+              <Button variant="outline" onClick={() => setSelectedSaleId(null)}>Close</Button>
+              <Button onClick={() => window.print()} variant="outline">Print Receipt</Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 };

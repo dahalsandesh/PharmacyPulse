@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Filter, Edit2, Trash2, PackagePlus, MoreVertical, Save, AlertCircle, Settings, Image as ImageIcon, Building2 } from 'lucide-react';
+import { Plus, Search, Filter, Edit2, Trash2, PackagePlus, MoreVertical, Save, AlertCircle, Settings, Image as ImageIcon, Building2, ChevronDown } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import api from '@/services/api';
@@ -168,7 +168,10 @@ const Medicines = () => {
                         <span className={`text-sm font-bold ${med.totalQuantity <= med.lowStockThreshold ? 'text-red-600' : 'text-gray-900'}`}>
                           {med.totalQuantity}
                         </span>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-tighter">{med.unit}s</span>
+                        <div className="text-[10px] text-gray-400 uppercase tracking-tighter flex flex-col items-center leading-tight">
+                          <span>{med.unit}s</span>
+                          {med.packSize > 1 && <span>(x{med.packSize})</span>}
+                        </div>
                       </div>
                     </td>
                     <td className="py-4 px-4 text-center">
@@ -289,18 +292,119 @@ const Medicines = () => {
   );
 };
 
-// --- FORM SUB-COMPONENTS ---
+// --- SEARCHABLE SELECT COMPONENT ---
+
+const SearchableSelect = ({ label, options, value, onChange, onAddClick, placeholder, error, icon }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(value || '');
+  const containerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    setSearchTerm(value || '');
+  }, [value]);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt => 
+    opt.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelect = (optName) => {
+    onChange(optName);
+    setSearchTerm(optName);
+    setIsOpen(false);
+  };
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setSearchTerm(val);
+    onChange(val);
+    if (!isOpen) setIsOpen(true);
+  };
+
+  return (
+    <div className="space-y-1.5 relative" ref={containerRef}>
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-bold text-gray-500 uppercase flex items-center">
+          {icon && <img src={icon} className="w-4 h-4 mr-1.5 rounded-sm" />}
+          {label}
+        </label>
+        {onAddClick && (
+          <button type="button" onClick={onAddClick} className="text-medstore-teal hover:text-medstore-teal-dark">
+            <Plus size={14} />
+          </button>
+        )}
+      </div>
+      
+      <div className="relative group">
+        <input 
+          type="text"
+          value={searchTerm}
+          onChange={handleInputChange}
+          onFocus={() => setIsOpen(true)}
+          placeholder={placeholder}
+          className={`w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-medstore-teal pr-10 transition-all ${error ? 'border-red-500' : 'focus:border-transparent'}`}
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors pointer-events-none">
+          <ChevronDown size={16} />
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in zoom-in duration-100">
+          {filteredOptions.length > 0 ? (
+            <div className="p-1.5">
+              {filteredOptions.map((opt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleSelect(opt.name)}
+                  className="w-full text-left px-3 py-2.5 hover:bg-teal-50 rounded-lg flex items-center transition-colors group"
+                >
+                  {opt.image ? (
+                    <img src={opt.image} className="w-6 h-6 rounded border border-gray-100 mr-2.5 bg-white object-contain" />
+                  ) : (
+                    <div className="w-6 h-6 rounded bg-gray-50 flex items-center justify-center mr-2.5 text-gray-400 border border-gray-100">
+                      <ImageIcon size={12} />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-900 group-hover:text-medstore-teal">{opt.name}</div>
+                    {opt.description && <div className="text-[10px] text-gray-400 line-clamp-1">{opt.description}</div>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 text-center text-xs text-gray-400 italic">
+              No matches found. You can keep typing to use "{searchTerm}".
+            </div>
+          )}
+        </div>
+      )}
+      {error && <p className="text-[10px] text-red-500">{error}</p>}
+    </div>
+  );
+};
 
 const MedicineForm = ({ medicine, onSuccess, isEdit, catalogData, onOpenCatalog }) => {
   const queryClient = useQueryClient();
-  
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     defaultValues: isEdit ? {
       name: medicine.name,
       category: medicine.category,
       type: medicine.type || 'tablet',
       manufacturer: medicine.manufacturer,
       unit: medicine.unit || 'tablet',
+      packSize: medicine.packSize || 1,
       minStockLevel: medicine.minStockLevel || 10,
       sellingPrice: medicine.sellingPrice || 0,
       image: medicine.image || '',
@@ -310,6 +414,7 @@ const MedicineForm = ({ medicine, onSuccess, isEdit, catalogData, onOpenCatalog 
       type: 'tablet',
       manufacturer: '',
       unit: 'tablet',
+      packSize: 1,
       minStockLevel: 10,
       sellingPrice: 0,
       image: '',
@@ -322,21 +427,10 @@ const MedicineForm = ({ medicine, onSuccess, isEdit, catalogData, onOpenCatalog 
   const categoryIcon = catalogData?.find(c => c.type === 'category' && c.name === selectedCategory)?.image;
   const manufacturerLogo = catalogData?.find(c => c.type === 'manufacturer' && c.name === selectedManufacturer)?.image;
 
-  const categoryOptions = [...new Set([
-    ...(catalogData?.filter(c => c.type === 'category').map(c => c.name) || []),
-  ])].sort();
-
-  const typeOptions = [...new Set([
-    ...(catalogData?.filter(c => c.type === 'type').map(c => c.name) || []),
-  ])].sort();
-
-  const manufacturerOptions = [...new Set([
-    ...(catalogData?.filter(c => c.type === 'manufacturer').map(c => c.name) || []),
-  ])].sort();
-
-  const unitOptions = [...new Set([
-    ...(catalogData?.filter(c => c.type === 'unit').map(c => c.name) || []),
-  ])].sort();
+  const categoryOptions = (catalogData?.filter(c => c.type === 'category') || []).sort((a,b) => a.name.localeCompare(b.name));
+  const typeOptions = (catalogData?.filter(c => c.type === 'type') || []).sort((a,b) => a.name.localeCompare(b.name));
+  const manufacturerOptions = (catalogData?.filter(c => c.type === 'manufacturer') || []).sort((a,b) => a.name.localeCompare(b.name));
+  const unitOptions = (catalogData?.filter(c => c.type === 'unit') || []).sort((a,b) => a.name.localeCompare(b.name));
 
   const mutation = useMutation({
     mutationFn: (data) => isEdit 
@@ -381,58 +475,53 @@ const MedicineForm = ({ medicine, onSuccess, isEdit, catalogData, onOpenCatalog 
       <Input label="Medicine Image URL" {...register('image')} placeholder="https://example.com/med.png" />
       
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-gray-500 uppercase flex items-center">
-              {categoryIcon && <img src={categoryIcon} className="w-4 h-4 mr-1.5 rounded-sm" />}
-              Category
-            </label>
-            <button type="button" onClick={() => onOpenCatalog('category')} className="text-medstore-teal hover:text-medstore-teal-dark">
-              <Plus size={14} />
-            </button>
-          </div>
-          <input list="category-list" {...register('category', { required: true })} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-medstore-teal" placeholder="e.g. Antibiotic" />
-          <datalist id="category-list">{categoryOptions.map(c => <option key={c} value={c} />)}</datalist>
-          {errors.category && <p className="text-[10px] text-red-500">Required</p>}
-        </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-gray-500 uppercase">Type</label>
-            <button type="button" onClick={() => onOpenCatalog('type')} className="text-medstore-teal hover:text-medstore-teal-dark">
-              <Plus size={14} />
-            </button>
-          </div>
-          <input list="type-list" {...register('type', { required: true })} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-medstore-teal" placeholder="e.g. Tablet" />
-          <datalist id="type-list">{typeOptions.map(t => <option key={t} value={t} />)}</datalist>
-          {errors.type && <p className="text-[10px] text-red-500">Required</p>}
-        </div>
+        <SearchableSelect 
+          label="Category"
+          options={categoryOptions}
+          value={watch('category')}
+          onChange={val => setValue('category', val)}
+          onAddClick={() => onOpenCatalog('category')}
+          placeholder="Select category..."
+          icon={categoryIcon}
+          error={errors.category?.message}
+        />
+        <SearchableSelect 
+          label="Type"
+          options={typeOptions}
+          value={watch('type')}
+          onChange={val => setValue('type', val)}
+          onAddClick={() => onOpenCatalog('type')}
+          placeholder="Select type..."
+          error={errors.type?.message}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-gray-500 uppercase flex items-center">
-              {manufacturerLogo && <img src={manufacturerLogo} className="w-4 h-4 mr-1.5 rounded-sm bg-white border border-gray-100 p-0.5" />}
-              Manufacturer
-            </label>
-            <button type="button" onClick={() => onOpenCatalog('manufacturer')} className="text-medstore-teal hover:text-medstore-teal-dark">
-              <Plus size={14} />
-            </button>
-          </div>
-          <input list="mfr-list" {...register('manufacturer')} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-medstore-teal" placeholder="Company name" />
-          <datalist id="mfr-list">{manufacturerOptions.map(m => <option key={m} value={m} />)}</datalist>
-        </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-bold text-gray-500 uppercase">Unit</label>
-            <button type="button" onClick={() => onOpenCatalog('unit')} className="text-medstore-teal hover:text-medstore-teal-dark">
-              <Plus size={14} />
-            </button>
-          </div>
-          <input list="unit-list" {...register('unit', { required: true })} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-medstore-teal" placeholder="e.g. Strip" />
-          <datalist id="unit-list">{unitOptions.map(u => <option key={u} value={u} />)}</datalist>
-          {errors.unit && <p className="text-[10px] text-red-500">Required</p>}
-        </div>
+        <SearchableSelect 
+          label="Manufacturer"
+          options={manufacturerOptions}
+          value={watch('manufacturer')}
+          onChange={val => setValue('manufacturer', val)}
+          onAddClick={() => onOpenCatalog('manufacturer')}
+          placeholder="Select manufacturer..."
+          icon={manufacturerLogo}
+        />
+        <SearchableSelect 
+          label="Unit"
+          options={unitOptions}
+          value={watch('unit')}
+          onChange={val => setValue('unit', val)}
+          onAddClick={() => onOpenCatalog('unit')}
+          placeholder="Select unit..."
+          error={errors.unit?.message}
+        />
+        <Input 
+          label="Pack Size (e.g. 100)" 
+          type="number" 
+          min="1"
+          {...register('packSize', { required: true, valueAsNumber: true })} 
+          error={errors.packSize?.message}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -641,9 +730,20 @@ const AddStockForm = ({ medicine, onSuccess }) => {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Input label="Quantity" type="number" {...register('quantity', { required: true })} />
+        <Input 
+          label={`Quantity (${medicine?.unit}s)`} 
+          type="number" 
+          {...register('quantity', { required: true })} 
+          placeholder="Number of packs..."
+        />
         <Input label="Purchase Price (per unit)" type="number" step="0.01" {...register('purchasePrice', { required: true })} />
       </div>
+      {medicine?.packSize > 1 && watch('quantity') > 0 && (
+        <div className="text-xs text-medstore-teal font-medium bg-teal-50 p-2 rounded border border-teal-100 flex justify-between items-center">
+          <span>Total {medicine.name} (pieces):</span>
+          <span className="font-bold">{watch('quantity')} {medicine.unit}s x {medicine.packSize} = {watch('quantity') * medicine.packSize} total pieces</span>
+        </div>
+      )}
       <div className="bg-blue-50 p-3 rounded-lg flex items-start text-[11px] text-blue-700">
         <AlertCircle size={14} className="mr-2 shrink-0 mt-0.5" />
         This stock will be added to the catalog for {medicine?.name}. Oldest batches will be sold first (FIFO).

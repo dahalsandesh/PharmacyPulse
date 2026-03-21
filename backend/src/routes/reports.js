@@ -216,10 +216,19 @@ router.get('/stock-value', async (req, res, next) => {
     const result = await Batch.aggregate([
       { $match: { pharmacyId: pharmacyId, status: 'active', quantity: { $gt: 0 } } },
       {
+        $lookup: {
+          from: 'medicines',
+          localField: 'medicineId',
+          foreignField: '_id',
+          as: 'medicine',
+        },
+      },
+      { $unwind: '$medicine' },
+      {
         $group: {
           _id: null,
           totalPurchaseValue: { $sum: { $multiply: ['$quantity', '$purchasePrice'] } },
-          totalSellingValue: { $sum: { $multiply: ['$quantity', '$sellingPrice'] } },
+          totalSellingValue: { $sum: { $multiply: ['$quantity', '$medicine.sellingPrice'] } },
           totalUnits: { $sum: '$quantity' },
           batchCount: { $sum: 1 },
         },

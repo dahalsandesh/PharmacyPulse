@@ -36,7 +36,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   ] : [
     { name: 'Dashboard', path: '/', icon: Home },
     { name: 'Medicines', path: '/medicines', icon: Pill },
-    { name: 'New Sale', path: '/sales', icon: PlusCircle },
+    { name: 'New Sale', path: '/sales', icon: PlusCircle, end: true },
     { name: 'Sales History', path: '/sales/history', icon: Receipt },
     { name: 'Damage Log', path: '/damage', icon: AlertTriangle },
     { name: 'Reports', path: '/reports', icon: BarChart },
@@ -69,6 +69,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             <NavLink
               key={item.path}
               to={item.path}
+              end={item.end}
               title={!isOpen ? item.name : undefined}
               className={({ isActive }) => `
                 flex items-center rounded-md transition-colors text-sm font-medium

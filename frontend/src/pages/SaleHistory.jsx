@@ -16,7 +16,7 @@ const SaleHistory = () => {
     queryFn: () => api.get('/sales'),
   });
 
-  const sales = data?.data?.data || [];
+  const sales = data?.data || [];
 
   const filteredSales = sales.filter(s => 
     s.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 

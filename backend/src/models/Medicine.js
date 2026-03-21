@@ -22,6 +22,7 @@ const medicineSchema = new Schema({
     default: 'tablet',
     trim: true
   },
+  packSize: { type: Number, default: 1 },
   sellingPrice: { type: Number, default: 0 },
   lowStockThreshold: { type: Number, required: true, default: 10 },
   highStockThreshold: { type: Number, default: 500 },

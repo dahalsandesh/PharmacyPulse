@@ -189,11 +189,11 @@ const Dashboard = () => {
         <div className="lg:col-span-2 bg-white border border-medstore-border rounded-xl card-shadow p-5 flex flex-col">
           <h2 className="text-base font-semibold text-gray-900 mb-4">Stock Health Overview</h2>
           
-          <div className="h-48 w-full">
+          <div className="h-48 sm:h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={healthData} layout="vertical" margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
+              <BarChart data={healthData} layout="vertical" margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#6B7280' }} />
+                <YAxis dataKey="name" type="category" width={75} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
                 <Tooltip cursor={{ fill: '#F9FAFB' }} contentStyle={{ borderRadius: '8px', border: '1px solid #E5E3DE', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}/>
                 <Bar dataKey="value" radius={[4, 4, 4, 4]} barSize={20}>
                   {healthData.map((entry, index) => (

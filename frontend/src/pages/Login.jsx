@@ -36,16 +36,14 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-[#F7F6F3] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="w-12 h-12 rounded-full bg-[#0D9488] flex items-center justify-center shadow-lg">
-            <Pill size={26} className="text-white" />
-          </div>
+        <div className="flex justify-center mb-6">
+          <img src="/logo.svg" alt="PharmacyPulse Logo" className="w-16 h-16" />
         </div>
-        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-[#1A1D23]">
-          MedStore
+        <h2 className="text-center text-3xl font-bold tracking-tight text-[#1A1D23]">
+          PharmacyPulse
         </h2>
         <p className="mt-2 text-center text-sm text-[#6B7280]">
-          Pharmacy Management System
+          Modern Pharmacy Management System
         </p>
       </div>
 

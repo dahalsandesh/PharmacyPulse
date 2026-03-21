@@ -7,6 +7,8 @@ import { useSalesStore } from '@/stores/salesStore';
 import { formatNPR } from '@/utils/formatters';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { useAuthStore } from '@/stores/authStore';
+import { Users } from 'lucide-react';
 
 const NewSale = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,6 +16,8 @@ const NewSale = () => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [discountVal, setDiscountVal] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuthStore();
+  const [soldById, setSoldById] = useState(user?._id || '');
   
   const { cart, addToCart, removeFromCart, updateQuantity, updatePrice, clearCart } = useSalesStore();
 
@@ -24,6 +28,18 @@ const NewSale = () => {
       return api.get(`/medicines?search=${searchTerm}&limit=20`).then(res => res.data);
     },
   });
+
+  const { data: staffData } = useQuery({
+    queryKey: ['pharmacyUsers'],
+    queryFn: () => api.get('/auth/pharmacy/users').then(res => res.data),
+    enabled: !!user,
+  });
+
+  const staffMembers = staffData?.data || [];
+
+  React.useEffect(() => {
+    if (user?._id && !soldById) setSoldById(user._id);
+  }, [user]);
 
   const handleAddToCart = (medicine) => {
     if (medicine.currentStock <= 0) {
@@ -52,6 +68,7 @@ const NewSale = () => {
         items: cart.map(i => ({ medicineId: i.medicineId, quantity: i.quantity, medicineName: i.medicineName, unitPrice: i.unitPrice })),
         paymentMethod,
         discount: parseFloat(discountVal) || 0,
+        soldById: soldById || user._id,
       };
 
       await api.post('/sales', payload);
@@ -219,6 +236,28 @@ const NewSale = () => {
         <div className="bg-white rounded-xl border border-medstore-border card-shadow flex flex-col lg:sticky lg:top-6">
           <div className="p-5 border-b border-gray-100">
             <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
+          </div>
+          
+          <div className="p-5 border-b border-gray-100 bg-teal-50/30">
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-bold text-gray-500 uppercase flex items-center">
+                <Users size={14} className="mr-1.5" /> Sold By
+              </label>
+            </div>
+            <select 
+              value={soldById}
+              onChange={(e) => setSoldById(e.target.value)}
+              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-medstore-teal transition-all"
+            >
+              {staffMembers.map(staff => (
+                <option key={staff._id} value={staff._id}>
+                  {staff.name} ({staff.role})
+                </option>
+              ))}
+              {!staffMembers.some(s => s._id === user?._id) && user && (
+                <option value={user._id}>{user.name} (Me)</option>
+              )}
+            </select>
           </div>
           
           <div className="p-5 space-y-4 flex-1">

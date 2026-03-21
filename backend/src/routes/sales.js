@@ -11,13 +11,13 @@ router.use(authenticate, checkSubscription);
 router.post('/', async (req, res, next) => {
   try {
     const pharmacyId = req.user.pharmacyId;
-    const { items, paymentMethod, discount, notes } = req.body;
+    const { items, paymentMethod, discount, notes, soldById } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: 'At least one item required' });
     }
 
-    const result = await processSale(pharmacyId, items, paymentMethod, discount || 0, req.user._id, notes);
+    const result = await processSale(pharmacyId, items, paymentMethod, discount || 0, soldById || req.user._id, notes);
 
     res.status(201).json({ success: true, data: result });
   } catch (err) {

@@ -80,4 +80,20 @@ router.put('/change-password', authenticate, async (req, res, next) => {
   }
 });
 
+// GET /api/auth/pharmacy/users
+router.get('/pharmacy/users', authenticate, async (req, res, next) => {
+  try {
+    if (!req.user.pharmacyId) {
+      return res.status(400).json({ success: false, message: 'User not associated with a pharmacy' });
+    }
+    const users = await User.find({ 
+      pharmacyId: req.user.pharmacyId,
+      isActive: true 
+    }).select('name role');
+    res.json({ success: true, data: users });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

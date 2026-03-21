@@ -690,7 +690,7 @@ const CatalogManager = ({ initialTab = 'manufacturer' }) => {
 
 const AddStockForm = ({ medicine, onSuccess }) => {
   const queryClient = useQueryClient();
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
     defaultValues: {
       batchNumber: '',
       expiryDate: '',
@@ -723,7 +723,24 @@ const AddStockForm = ({ medicine, onSuccess }) => {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Input label="Batch Number" {...register('batchNumber', { required: true })} />
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-gray-500 uppercase">Batch Number</label>
+            <button 
+              type="button" 
+              onClick={() => {
+                const prefix = medicine.name?.substring(0,2).toUpperCase() || 'BN';
+                const date = dayjs().format('YYMMDD');
+                const rand = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+                setValue('batchNumber', `${prefix}-${date}-${rand}`);
+              }}
+              className="text-[10px] text-medstore-teal hover:underline font-bold"
+            >
+              Auto-Generate
+            </button>
+          </div>
+          <Input {...register('batchNumber', { required: true })} placeholder="e.g. B12345" />
+        </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-gray-700">Expiry Month</label>
           <input type="month" {...register('expiryDate', { required: true })} className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:ring-2 focus:ring-medstore-teal" />
@@ -755,5 +772,5 @@ const AddStockForm = ({ medicine, onSuccess }) => {
   );
 };
 
-export default Medicines;
 
+export default Medicines;

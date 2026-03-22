@@ -7,6 +7,33 @@ const { authenticate, checkSubscription } = require('../middleware/auth');
 
 router.use(authenticate, checkSubscription);
 
+// GET /api/stock/history — Recent purchases globally
+router.get('/history', async (req, res, next) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const total = await Batch.countDocuments({ pharmacyId: req.user.pharmacyId });
+    const batches = await Batch.find({ pharmacyId: req.user.pharmacyId })
+      .sort({ createdAt: -1 })
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .limit(parseInt(limit))
+      .populate('medicineId', 'name genericName unit')
+      .populate('supplierId', 'name');
+
+    res.json({
+      success: true,
+      data: batches,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/stock — Add new batch
 router.post('/', async (req, res, next) => {
   try {
@@ -85,6 +112,32 @@ router.get('/batch/:batchId', async (req, res, next) => {
     }
 
     res.json({ success: true, data: batch });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PUT /api/stock/batch/:batchId — Update batch
+router.put('/batch/:batchId', async (req, res, next) => {
+  try {
+    const batch = await Batch.findOneAndUpdate(
+      { _id: req.params.batchId, pharmacyId: req.user.pharmacyId },
+      { $set: req.body },
+      { new: true }
+    );
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+    res.json({ success: true, data: batch });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/stock/batch/:batchId — Delete batch
+router.delete('/batch/:batchId', async (req, res, next) => {
+  try {
+    const batch = await Batch.findOneAndDelete({ _id: req.params.batchId, pharmacyId: req.user.pharmacyId });
+    if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+    res.json({ success: true, message: 'Batch deleted successfully' });
   } catch (err) {
     next(err);
   }

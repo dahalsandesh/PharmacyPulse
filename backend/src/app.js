@@ -37,6 +37,8 @@ app.use('/api/damage', require('./routes/damage'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/suppliers', require('./routes/suppliers'));
 app.use('/api/catalog', require('./routes/catalog'));
+app.use('/api/returns', require('./routes/returns'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Health check
 app.get('/api/health', (req, res) => {

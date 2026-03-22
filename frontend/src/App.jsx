@@ -13,6 +13,9 @@ import Profile from '@/pages/Profile';
 import SaleHistory from '@/pages/SaleHistory';
 import DamageLog from '@/pages/DamageLog';
 import Reports from '@/pages/Reports';
+import PurchaseHistory from '@/pages/PurchaseHistory';
+import SalesReturn from '@/pages/SalesReturn';
+import PurchaseReturn from '@/pages/PurchaseReturn';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,11 +36,15 @@ function App() {
             <Route index element={<Dashboard />} />
             {/* Pharmacy Staff Routes */}
             <Route path="medicines" element={<Medicines />} />
+            <Route path="purchases" element={<PurchaseHistory />} />
             <Route path="sales/history" element={<SaleHistory />} />
             <Route path="sales" element={<NewSale />} />
+            <Route path="sales/return" element={<SalesReturn />} />
+            <Route path="purchases/return" element={<PurchaseReturn />} />
             <Route path="damage" element={<DamageLog />} />
             <Route path="reports" element={<Reports />} />
             <Route path="profile" element={<Profile />} />
+
             
             {/* SuperAdmin Routes */}
             {/* <Route path="admin" element={<AdminDashboard />} /> */}

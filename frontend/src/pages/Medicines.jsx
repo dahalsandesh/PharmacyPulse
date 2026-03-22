@@ -18,6 +18,7 @@ const Medicines = () => {
   
   // Modal States
   const [activeModal, setActiveModal] = useState(null); // 'add' | 'edit' | 'stock' | 'delete' | 'catalog'
+  const [isCatalogOpen, setIsCatalogOpen] = useState(false); // Separate state so it can overlay Add Medicine
   const [selectedMed, setSelectedMed] = useState(null);
   const [catalogInitialTab, setCatalogInitialTab] = useState('manufacturer');
 
@@ -247,7 +248,7 @@ const Medicines = () => {
           catalogData={catalogData}
           onOpenCatalog={(tab) => {
             setCatalogInitialTab(tab);
-            setActiveModal('catalog');
+            setIsCatalogOpen(true);
           }}
         />
       </Modal>
@@ -282,8 +283,11 @@ const Medicines = () => {
       </Modal>
 
       <Modal
-        isOpen={activeModal === 'catalog'}
-        onClose={() => setActiveModal(null)}
+        isOpen={activeModal === 'catalog' || isCatalogOpen}
+        onClose={() => {
+          if (isCatalogOpen) setIsCatalogOpen(false);
+          else setActiveModal(null);
+        }}
         title="Manage Catalog Metadata"
         maxWidth="max-w-3xl"
       >

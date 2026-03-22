@@ -11,7 +11,10 @@ import {
   LogOut,
   Bell,
   Users,
-  Store
+  Store,
+  PackageSearch,
+  RotateCcw,
+  Undo2
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/services/api';
@@ -34,10 +37,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     { name: 'Pharmacies', path: '/admin/pharmacies', icon: Store },
     { name: 'Users', path: '/admin/users', icon: Users },
   ] : [
-    { name: 'Dashboard', path: '/', icon: Home },
+    { name: 'Dashboard', path: '/', icon: Home, end: true },
     { name: 'Medicines', path: '/medicines', icon: Pill },
+    { name: 'Purchases', path: '/purchases', icon: PackageSearch },
     { name: 'New Sale', path: '/sales', icon: PlusCircle, end: true },
     { name: 'Sales History', path: '/sales/history', icon: Receipt },
+    { name: 'Sales Return', path: '/sales/return', icon: RotateCcw },
+    { name: 'Purchase Return', path: '/purchases/return', icon: Undo2 },
     { name: 'Damage Log', path: '/damage', icon: AlertTriangle },
     { name: 'Reports', path: '/reports', icon: BarChart },
   ];

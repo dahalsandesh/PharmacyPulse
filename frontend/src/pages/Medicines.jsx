@@ -126,6 +126,7 @@ const Medicines = () => {
                   <th className="py-4 px-4 text-center">In Stock</th>
                   <th className="py-4 px-4 text-center text-medstore-teal">Selling Price</th>
                   <th className="py-4 px-4">Category / Type</th>
+                  <th className="py-4 px-4 text-center">DRN</th>
                   <th className="py-4 px-4 text-center">Status</th>
                   <th className="py-4 px-4">Nearest Expiry</th>
                   <th className="py-4 px-4 text-right">Actions</th>
@@ -134,11 +135,11 @@ const Medicines = () => {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-gray-400">Loading medicines...</td>
+                  <td colSpan="8" className="py-12 text-center text-gray-400">Loading medicines...</td>
                 </tr>
               ) : medicines.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="py-12 text-center text-gray-400">
+                  <td colSpan="8" className="py-12 text-center text-gray-400">
                     No medicines found. 
                     {searchTerm && " Try adjusting your search."}
                   </td>
@@ -189,6 +190,18 @@ const Medicines = () => {
                         <span className="capitalize text-gray-600 bg-gray-100 px-2 py-0.5 rounded text-[11px] font-bold w-fit mb-1">{med.category}</span>
                         <span className="text-[10px] text-gray-400 capitalize">{med.type}</span>
                       </div>
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      {med.drn ? (
+                        <div className="flex flex-col items-center">
+                          <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded">
+                            {med.drn}
+                          </span>
+                          <span className="text-[9px] text-gray-400 mt-1">DRN</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Not set</span>
+                      )}
                     </td>
                     <td className="py-4 px-4 text-center">
                       <Badge color={med.stockStatus?.color}>{med.stockStatus?.label}</Badge>

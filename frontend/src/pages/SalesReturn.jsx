@@ -18,19 +18,19 @@ const SalesReturn = () => {
   
   const { data: salesData, isLoading: isSalesLoading } = useQuery({
     queryKey: ['sales'],
-    queryFn: () => api.get('/sales').then(res => res.data),
+    queryFn: () => api.get('/sales'),
     enabled: !viewHistory
   });
 
   const { data: returnsData, isLoading: isReturnsLoading } = useQuery({
     queryKey: ['salesReturns'],
-    queryFn: () => api.get('/returns/sales').then(res => res.data),
+    queryFn: () => api.get('/returns/sales'),
     enabled: viewHistory
   });
 
-  const { data: saleDetail, isLoading: isLoadingDetail } = useQuery({
+  const { data: saleDetailData, isLoading: isLoadingDetail } = useQuery({
     queryKey: ['sale', selectedSaleId],
-    queryFn: () => api.get(`/sales/${selectedSaleId}`).then(res => res.data),
+    queryFn: () => api.get(`/sales/${selectedSaleId}`),
     enabled: !!selectedSaleId,
   });
 
@@ -45,6 +45,7 @@ const SalesReturn = () => {
 
   const sales = salesData?.data || [];
   const returns = returnsData?.data || [];
+  const saleDetail = saleDetailData?.data;
 
   const filteredSales = sales.filter(s => 
     !s.isVoided && s.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())
@@ -242,8 +243,10 @@ const SalesReturn = () => {
 
       {/* RETURN MODAL */}
       <Modal 
-        isOpen={!!selectedSaleId && !viewHistory} 
-        onClose={() => setSelectedSaleId(null)} 
+        isOpen={!!selectedSaleId} 
+        onClose={() => {
+          setSelectedSaleId(null);
+        }} 
         title={`Process Return - Invoice ${saleDetail?.invoiceNumber}`}
         maxWidth="max-w-3xl"
       >
@@ -311,7 +314,9 @@ const SalesReturn = () => {
             </div>
 
             <div className="flex justify-end pt-2 space-x-3 border-t border-gray-100 mt-4">
-              <Button type="button" variant="outline" onClick={() => setSelectedSaleId(null)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => {
+                setSelectedSaleId(null);
+              }}>Cancel</Button>
               <Button type="submit" disabled={!hasItemsToReturn || returnMutation.isPending} isLoading={returnMutation.isPending}>
                 <CheckCircle size={16} className="mr-2" />
                 Process Return

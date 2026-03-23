@@ -20,10 +20,35 @@ const TopNav = ({ toggleSidebar, isSidebarOpen }) => {
 
   const { data: notificationsData } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => api.get('/notifications').then(res => res.data),
+    queryFn: () => api.get('/notifications'),
     enabled: !!user,
-    refetchInterval: 1000 * 60, // Refetch every minute
+    refetchInterval: 1000 * 30, // Refetch every 30s
   });
+
+  const [prevUnreadCount, setPrevUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (notificationsData?.data) {
+      const currentUnread = notificationsData.data.filter(n => !n.isRead).length;
+      if (currentUnread > prevUnreadCount) {
+        const latest = notificationsData.data.find(n => !n.isRead);
+        if (latest) {
+          import('react-hot-toast').then(({ toast }) => {
+            toast(latest.title, {
+              icon: '🔔',
+              duration: 5000,
+              style: {
+                borderRadius: '10px',
+                background: '#333',
+                color: '#fff',
+              },
+            });
+          });
+        }
+      }
+      setPrevUnreadCount(currentUnread);
+    }
+  }, [notificationsData, prevUnreadCount]);
 
   const notifications = notificationsData?.data || [];
   const unreadCount = notifications.filter(n => !n.isRead).length;

@@ -14,6 +14,7 @@ const DailyReport = require('../models/DailyReport');
 const DamageLog = require('../models/DamageLog');
 const { authenticate, checkSubscription } = require('../middleware/auth');
 const { getExpiringBatches, getLowStockMedicines } = require('../services/alert.service');
+const { runLazyJobs } = require('../services/lazyJob.service');
 
 router.use(authenticate, checkSubscription);
 
@@ -21,6 +22,10 @@ router.use(authenticate, checkSubscription);
 router.get('/dashboard', async (req, res, next) => {
   try {
     const pharmacyId = req.user.pharmacyId;
+    
+    // Trigger lazy background jobs (for Vercel compatibility)
+    await runLazyJobs(pharmacyId);
+
     const today = dayjs().tz('Asia/Kathmandu').startOf('day').toDate();
     const tomorrow = dayjs().tz('Asia/Kathmandu').add(1, 'day').startOf('day').toDate();
 
@@ -111,6 +116,27 @@ router.get('/dashboard', async (req, res, next) => {
       else if (currentStock > hi) stockHealth.high++;
       else stockHealth.normal++;
     }
+    
+    // Top Selling Products (Last 30 days)
+    const thirtyDaysAgo = dayjs().subtract(30, 'day').toDate();
+    const topProducts = await SaleItem.aggregate([
+      {
+        $match: {
+          pharmacyId: pharmacyId,
+          createdAt: { $gte: thirtyDaysAgo }
+        }
+      },
+      {
+        $group: {
+          _id: '$medicineId',
+          name: { $first: '$medicineName' },
+          totalQty: { $sum: '$quantity' },
+          totalRevenue: { $sum: '$lineTotal' }
+        }
+      },
+      { $sort: { totalQty: -1 } },
+      { $limit: 5 }
+    ]);
 
     res.json({
       success: true,
@@ -134,6 +160,7 @@ router.get('/dashboard', async (req, res, next) => {
         },
         stockHealth,
         recentSales: recentSalesWithItems,
+        topProducts,
       },
     });
   } catch (err) {

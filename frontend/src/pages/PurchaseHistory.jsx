@@ -161,14 +161,14 @@ const PurchaseHistory = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingBatch, setEditingBatch] = useState(null);
   
-  const { data, isLoading } = useQuery({
+  const { data: purchaseData, isLoading } = useQuery({
     queryKey: ['purchaseHistory'],
-    queryFn: () => api.get('/stock/history').then(res => res.data),
+    queryFn: () => api.get('/stock/history'),
   });
 
   const { data: medicinesData } = useQuery({
     queryKey: ['medicines', 'all', ''],
-    queryFn: () => api.get('/medicines?limit=1000').then(res => res.data),
+    queryFn: () => api.get('/medicines?limit=1000'),
   });
 
   const deleteBatchMutation = useMutation({
@@ -181,7 +181,7 @@ const PurchaseHistory = () => {
     onError: (err) => toast.error('Failed to delete purchase: ' + err.message)
   });
 
-  const batches = data?.data || [];
+  const batches = purchaseData?.data || [];
   const medicinesList = medicinesData?.data || [];
 
   const filteredBatches = batches.filter(b => 

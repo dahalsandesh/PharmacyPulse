@@ -13,6 +13,8 @@ const pharmacySchema = new Schema({
     endDate: { type: Date },
     isActive: { type: Boolean, default: true },
   },
+  lastExpiryCheck: { type: Date },
+  lastLowStockCheck: { type: Date },
   isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 

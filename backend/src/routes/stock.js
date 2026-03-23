@@ -4,6 +4,7 @@ const Batch = require('../models/Batch');
 const Medicine = require('../models/Medicine');
 const Supplier = require('../models/Supplier');
 const { authenticate, checkSubscription } = require('../middleware/auth');
+const { checkAndCreateAlerts } = require('../services/notification.service');
 
 router.use(authenticate, checkSubscription);
 
@@ -75,6 +76,9 @@ router.post('/', async (req, res, next) => {
       notes,
     });
 
+    // Check for alerts immediately
+    await checkAndCreateAlerts(pharmacyId, medicineId);
+
     res.status(201).json({ success: true, data: batch });
   } catch (err) {
     next(err);
@@ -138,6 +142,46 @@ router.delete('/batch/:batchId', async (req, res, next) => {
     const batch = await Batch.findOneAndDelete({ _id: req.params.batchId, pharmacyId: req.user.pharmacyId });
     if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
     res.json({ success: true, message: 'Batch deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/stock/bulk — Bulk add batches
+router.post('/bulk', async (req, res, next) => {
+  try {
+    const pharmacyId = req.user.pharmacyId;
+    const { batches } = req.body;
+
+    if (!batches || !Array.isArray(batches)) {
+      return res.status(400).json({ success: false, message: 'Batches array is required' });
+    }
+
+    const createdBatches = [];
+    for (const item of batches) {
+       // Basic validation and parsing
+       let parsedExpiry = item.expiryDate;
+       if (typeof item.expiryDate === 'string' && item.expiryDate.includes('/')) {
+         const [month, year] = item.expiryDate.split('/');
+         const dayjs = require('dayjs');
+         parsedExpiry = dayjs(`${year}-${month}-01`).endOf('month').toDate();
+       }
+
+       const batch = await Batch.create({
+         ...item,
+         pharmacyId,
+         batchNumber: item.batchNumber?.toUpperCase(),
+         expiryDate: parsedExpiry,
+         purchaseDate: item.purchaseDate || new Date(),
+         quantity: item.initialQuantity || item.quantity,
+         initialQuantity: item.initialQuantity || item.quantity
+       });
+       
+       await checkAndCreateAlerts(pharmacyId, item.medicineId);
+       createdBatches.push(batch);
+    }
+
+    res.status(201).json({ success: true, count: createdBatches.length, data: createdBatches });
   } catch (err) {
     next(err);
   }

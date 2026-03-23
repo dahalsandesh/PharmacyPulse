@@ -3,6 +3,7 @@ const Batch = require('../models/Batch');
 const Sale = require('../models/Sale');
 const SaleItem = require('../models/SaleItem');
 const { updateTodayReport } = require('./dailyReport.service');
+const { checkAndCreateAlerts } = require('./notification.service');
 
 async function processSale(pharmacyId, items, paymentMethod = 'cash', discount = 0, soldBy = null, notes = '') {
   const session = await mongoose.startSession();
@@ -78,6 +79,11 @@ async function processSale(pharmacyId, items, paymentMethod = 'cash', discount =
       discount,
       sales: 1,
     }, session);
+
+    // Trigger real-time alerts for each item sold
+    for (const item of items) {
+       await checkAndCreateAlerts(pharmacyId, item.medicineId, session);
+    }
 
     await session.commitTransaction();
     return { sale, saleItems: itemsWithId };

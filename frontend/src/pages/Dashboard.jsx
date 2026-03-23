@@ -9,6 +9,8 @@ import {
   AlertTriangle, 
   X,
   ArrowRight,
+  ShoppingCart,
+  PackagePlus,
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -97,35 +99,43 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Stat Cards - 4 Column */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          title="Today's sales"
-          value={formatNPR(summary.revenue)}
-          subValue={`+${summary.revenueChange || 0}% vs yesterday`}
-          subValuePositive={summary.revenueChange >= 0}
-          topColor="bg-medstore-teal"
-        />
-        <StatCard 
-          title="Today's margin"
-          value={formatNPR(summary.profit)}
-          badgeValue={summary.revenue ? `${Math.round((summary.profit / summary.revenue) * 100)}%` : '0%'}
-          badgeColor="green"
-          topColor="bg-emerald-500"
-        />
-        <StatCard 
-          title="Units today"
-          value={summary.itemsSold || 0}
-          subValue={`${summary.salesCount || 0} transactions`}
-          topColor="bg-blue-500"
-        />
-        <StatCard 
-          title="Today's losses"
-          value={formatNPR(summary.damageValue)}
-          subValue={`${summary.damageBatches || 0} batches written off`}
-          subValuePositive={false}
-          topColor="bg-red-500"
-        />
+      {/* Quick Actions & Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-1 bg-white rounded-xl border border-medstore-border card-shadow p-5 flex flex-col justify-center space-y-3">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Quick Actions</h3>
+          <Button fullWidth onClick={() => navigate('/sales/new')} className="justify-start h-11">
+            <ShoppingCart size={18} className="mr-3" /> New Sale
+          </Button>
+          <Button fullWidth variant="secondary" onClick={() => navigate('/purchases')} className="justify-start h-11">
+            <PackagePlus size={18} className="mr-3 text-medstore-teal" /> Add Intake
+          </Button>
+          <Button fullWidth variant="outline" onClick={() => navigate('/damage')} className="justify-start h-11 border-red-100 text-red-600 hover:bg-red-50">
+            <AlertTriangle size={18} className="mr-3" /> Record Loss
+          </Button>
+        </div>
+
+        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <StatCard 
+            title="Today's sales"
+            value={formatNPR(summary.revenue)}
+            subValue={`+${summary.revenueChange || 0}% vs yesterday`}
+            subValuePositive={summary.revenueChange >= 0}
+            topColor="bg-medstore-teal"
+          />
+          <StatCard 
+            title="Today's net margin"
+            value={formatNPR(summary.profit)}
+            badgeValue={summary.revenue ? `${Math.round((summary.profit / summary.revenue) * 100)}%` : '0%'}
+            badgeColor="green"
+            topColor="bg-emerald-500"
+          />
+          <StatCard 
+            title="Units sold"
+            value={summary.itemsSold || 0}
+            subValue={`${summary.salesCount || 0} transactions`}
+            topColor="bg-blue-500"
+          />
+        </div>
       </div>
 
       {/* Main Grid: Expiry Table (Left 60%) & Stock Chart (Right 40%) */}

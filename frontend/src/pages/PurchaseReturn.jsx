@@ -21,19 +21,19 @@ const PurchaseReturn = () => {
   
   const { data: batchesData, isLoading: isBatchesLoading } = useQuery({
     queryKey: ['activeBatches'],
-    queryFn: () => api.get('/stock/history?limit=100').then(res => res.data), // Fetch robust history
+    queryFn: () => api.get('/stock/history?limit=100'), // Fetch robust history
     enabled: !viewHistory
   });
 
   const { data: returnsData, isLoading: isReturnsLoading } = useQuery({
     queryKey: ['purchaseReturns'],
-    queryFn: () => api.get('/returns/purchases').then(res => res.data),
+    queryFn: () => api.get('/returns/purchases'),
     enabled: viewHistory
   });
 
-  const { data: batchDetail, isLoading: isLoadingDetail } = useQuery({
+  const { data: batchDetailData, isLoading: isLoadingDetail } = useQuery({
     queryKey: ['batch', selectedBatchId],
-    queryFn: () => api.get(`/stock/batch/${selectedBatchId}`).then(res => res.data),
+    queryFn: () => api.get(`/stock/batch/${selectedBatchId}`),
     enabled: !!selectedBatchId,
   });
 
@@ -48,6 +48,7 @@ const PurchaseReturn = () => {
 
   const batches = batchesData?.data || [];
   const returns = returnsData?.data || [];
+  const batchDetail = batchDetailData?.data;
 
   const filteredBatches = batches.filter(b => 
     b.quantity > 0 && (
@@ -236,7 +237,7 @@ const PurchaseReturn = () => {
 
       {/* RETURN MODAL */}
       <Modal 
-        isOpen={!!selectedBatchId && !viewHistory} 
+        isOpen={!!selectedBatchId} 
         onClose={() => {
           setSelectedBatchId(null);
           // remove query param if exists without reload

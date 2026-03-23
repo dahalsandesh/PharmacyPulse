@@ -20,7 +20,7 @@ const DamageLog = () => {
     queryFn: () => api.get('/damage'),
   });
 
-  const logs = data?.data?.data || [];
+  const logs = data?.data || [];
 
   const filteredLogs = logs.filter(log => 
     log.medicineId?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -105,7 +105,7 @@ const DamageLog = () => {
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)}
         title="Record Stock Damage / Expiry"
-        maxWidth="max-w-xl"
+        maxWidth="max-w-2xl"
       >
         <AddDamageForm onSuccess={() => setIsAddModalOpen(false)} />
       </Modal>
@@ -130,7 +130,7 @@ const AddDamageForm = ({ onSuccess }) => {
     queryKey: ['medicinesSearch', searchTerm],
     queryFn: () => {
       const q = searchTerm || '';
-      return api.get(`/medicines?search=${q}&limit=10`).then(res => res.data);
+      return api.get(`/medicines?search=${q}&limit=10`);
     },
     enabled: searchTerm.length > 1 || isSearchFocused,
   });
@@ -155,8 +155,7 @@ const AddDamageForm = ({ onSuccess }) => {
   const onSubmit = (data) => {
     if (!selectedBatch) return toast.error('Select a batch');
     mutation.mutate({
-      medicineId: selectedMed._id,
-      batchNumber: selectedBatch.batchNumber,
+      batchId: selectedBatch._id,
       quantity: parseInt(data.quantity),
       reason: data.reason,
       notes: data.notes
@@ -181,7 +180,7 @@ const AddDamageForm = ({ onSuccess }) => {
             />
           </div>
           {isSearchFocused && (
-            <div className="absolute top-13 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-20 max-h-48 overflow-y-auto">
+            <div className="absolute top-[76px] left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto custom-scrollbar">
               {isSearching ? <div className="p-3 text-center text-xs text-gray-500">Searching...</div> : 
                !searchResults || searchResults.length === 0 ? <div className="p-3 text-center text-xs text-gray-500">No meds found</div> :
                searchResults.map(m => (
@@ -214,7 +213,7 @@ const AddDamageForm = ({ onSuccess }) => {
       {selectedMed && (
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">Select Batch</label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto custom-scrollbar">
             {selectedMed.activeBatches?.map(b => (
               <button key={b.batchNumber} type="button" onClick={() => setSelectedBatch(b)}
                 className={`p-3 text-left border-2 rounded-xl transition-all ${selectedBatch?.batchNumber === b.batchNumber ? 'border-medstore-teal bg-teal-50' : 'border-gray-100'}`}>
@@ -228,7 +227,7 @@ const AddDamageForm = ({ onSuccess }) => {
 
       {selectedBatch && (
         <div className="space-y-4 pt-4 border-t border-gray-100">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-500 uppercase">Reason</label>
               <select {...register('reason')} className="w-full p-2 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-medstore-teal">
@@ -238,6 +237,15 @@ const AddDamageForm = ({ onSuccess }) => {
               </select>
             </div>
             <Input label="Qty to remove" type="number" {...register('quantity', { required: true, max: selectedBatch.quantity })} error={errors.quantity && 'Invalid qty'} />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-500 uppercase">Notes (Optional)</label>
+            <textarea 
+              {...register('notes')}
+              className="w-full p-2 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-medstore-teal resize-none"
+              rows={2}
+              placeholder="Additional notes..."
+            />
           </div>
           <Button type="submit" variant="danger" fullWidth isLoading={mutation.isPending}>
             <Save size={18} className="mr-2" /> Confirm Write-off

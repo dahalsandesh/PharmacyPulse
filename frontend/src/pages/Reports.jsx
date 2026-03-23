@@ -20,13 +20,14 @@ const Reports = () => {
     queryFn: () => api.get('/reports/profit-loss?days=30'),
   });
 
-  const reportData = data?.data?.data || [];
+  const summary = data?.data || {};
+  const reportData = summary.dailyBreakdown || [];
   
   // Quick aggregates
-  const totalRevenue = reportData.reduce((sum, day) => sum + day.revenue, 0);
-  const totalCost = reportData.reduce((sum, day) => sum + day.cogs, 0);
-  const totalProfit = reportData.reduce((sum, day) => sum + day.profit, 0);
-  const totalDamage = reportData.reduce((sum, day) => sum + day.damageValue, 0);
+  const totalRevenue = summary.totalRevenue || 0;
+  const totalCost = summary.totalCOGS || 0;
+  const totalProfit = summary.grossProfit || 0;
+  const totalDamage = summary.damageWriteOffs || 0;
 
   // Recharts payload
   const chartData = reportData.map(d => ({

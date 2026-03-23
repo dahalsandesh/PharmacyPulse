@@ -6,6 +6,7 @@ import api from '@/services/api';
 import { formatDate } from '@/utils/formatters';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import PharmacyModal from '@/components/admin/PharmacyModal';
 
 const AdminPharmacies = () => {
   const queryClient = useQueryClient();
@@ -40,7 +41,10 @@ const AdminPharmacies = () => {
           </h1>
           <p className="text-sm text-gray-500 mt-1">Super Admin Portal - Multi-Tenant Control</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
+        <Button onClick={() => {
+          setEditingPharmacy(null);
+          setIsModalOpen(true);
+        }}>
           <Plus size={18} className="mr-2" />
           Add Pharmacy
         </Button>
@@ -112,6 +116,17 @@ const AdminPharmacies = () => {
                          >
                            {pharmacy.subscription?.isActive ? 'Suspend' : 'Activate'}
                          </Button>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           className="h-8 w-8 p-0 flex items-center justify-center text-medstore-teal border-medstore-teal"
+                           onClick={() => {
+                             setEditingPharmacy(pharmacy);
+                             setIsModalOpen(true);
+                           }}
+                         >
+                           <Edit size={16} />
+                         </Button>
                       </div>
                     </td>
                   </tr>
@@ -121,6 +136,12 @@ const AdminPharmacies = () => {
           </table>
         </div>
       </div>
+
+      <PharmacyModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        pharmacy={editingPharmacy} 
+      />
     </div>
   );
 };

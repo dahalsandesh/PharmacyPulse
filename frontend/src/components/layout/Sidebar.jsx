@@ -51,7 +51,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   return (
     <>
       {/* Mobile overlay */}
-      {!isAdmin && isOpen && (
+      {isOpen && (
         <div 
           className="fixed inset-0 bg-gray-900/50 z-20 md:hidden" 
           onClick={() => setIsOpen(false)}

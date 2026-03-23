@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { Search, Plus, Trash2, ShieldCheck, AlertCircle, ShoppingCart } from 'lucide-react';
+import { Search, Plus, Trash2, ShieldCheck, AlertCircle, ShoppingCart, Receipt } from 'lucide-react';
 import api from '@/services/api';
 import { useSalesStore } from '@/stores/salesStore';
 import { formatNPR } from '@/utils/formatters';
+import { handleApiError, showSuccessMessage, showLoadingMessage } from '@/utils/errorHandler';
+import { calculateGSTBreakdown, formatGSTAmount, getGSTLabel } from '@/utils/gstCalculator';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/authStore';
 import { Users } from 'lucide-react';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 const NewSale = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [discountVal, setDiscountVal] = useState('');
@@ -19,14 +23,25 @@ const NewSale = () => {
   const { user } = useAuthStore();
   const [soldById, setSoldById] = useState(user?._id || '');
   
+  // Custom debounce hook
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
   const { cart, addToCart, removeFromCart, updateQuantity, updatePrice, clearCart } = useSalesStore();
 
   const { data: searchResults, isLoading: isSearching } = useQuery({
-    queryKey: ['medicinesSearch', searchTerm],
+    queryKey: ['medicinesSearch', debouncedSearchTerm],
     queryFn: () => {
-      if (searchTerm.length === 1) return [];
-      return api.get(`/medicines?search=${searchTerm}&limit=20`).then(res => res.data);
+      if (debouncedSearchTerm.length === 1) return [];
+      return api.get(`/medicines?search=${debouncedSearchTerm}&limit=20`).then(res => res.data);
     },
+    enabled: debouncedSearchTerm.length > 1 || isSearchFocused,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const { data: staffData } = useQuery({
@@ -41,7 +56,7 @@ const NewSale = () => {
     if (user?._id && !soldById) setSoldById(user._id);
   }, [user]);
 
-  const handleAddToCart = (medicine) => {
+  const handleAddToCart = useCallback((medicine) => {
     if (medicine.currentStock <= 0) {
       toast.error('Item is out of stock!');
       return;
@@ -56,12 +71,19 @@ const NewSale = () => {
       quantity: 1
     });
     setSearchTerm('');
+    setDebouncedSearchTerm('');
     setIsSearchFocused(false);
-  };
+    showSuccessMessage(`${medicine.name} added to cart`);
+  }, [addToCart]);
 
   const handleCheckout = async () => {
-    if (cart.length === 0) return toast.error('Cart is empty');
+    if (cart.length === 0) {
+      toast.error('Cart is empty');
+      return;
+    }
 
+    const loadingToast = showLoadingMessage('Processing sale...');
+    
     try {
       setIsSubmitting(true);
       const payload = {
@@ -72,29 +94,81 @@ const NewSale = () => {
       };
 
       await api.post('/sales', payload);
-      toast.success('Sale completed successfully!');
+      toast.dismiss(loadingToast);
+      showSuccessMessage('Sale completed successfully!');
       clearCart();
       setDiscountVal('');
     } catch (err) {
-      toast.error(err.message || 'Failed to complete sale');
+      toast.dismiss(loadingToast);
+      handleApiError(err);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+  const subtotal = useMemo(() => 
+    cart.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0),
+    [cart]
+  );
   const discountAmount = parseFloat(discountVal) || 0;
-  const total = Math.max(0, subtotal - discountAmount);
   
-  const hasExpiryWarning = cart.some(i => i.nearestExpiry && new Date(i.nearestExpiry).getTime() < new Date().getTime() + 30*24*60*60*1000);
+  // GST Calculation
+  const gstBreakdown = useMemo(() => 
+    calculateGSTBreakdown(cart),
+    [cart]
+  );
+  
+  const total = Math.max(0, gstBreakdown.total_amount - discountAmount);
+  const totalGST = gstBreakdown.total_gst;
+  
+  const hasExpiryWarning = useMemo(() => 
+    cart.some(i => i.nearestExpiry && new Date(i.nearestExpiry).getTime() < new Date().getTime() + 30*24*60*60*1000),
+    [cart]
+  );
 
   const handleBlur = () => setTimeout(() => setIsSearchFocused(false), 200);
 
+  // Keyboard shortcuts
+  const shortcuts = [
+    { key: 'enter', action: () => {
+      if (cart.length > 0 && !isSubmitting) {
+        handleCheckout();
+      }
+    }, description: 'Complete Sale' },
+    { key: 'escape', action: () => {
+      if (cart.length > 0) {
+        clearCart();
+        setDiscountVal('');
+      }
+      setSearchTerm('');
+      setDebouncedSearchTerm('');
+      setIsSearchFocused(false);
+    }, description: 'Clear Cart' },
+    { key: 'ctrl+/', action: () => {
+      // Focus search input
+      document.querySelector('input[placeholder*="Search medicine"]')?.focus();
+    }, description: 'Focus Search' },
+    { key: 'f1', action: () => {
+      setPaymentMethod('cash');
+    }, description: 'Cash Payment' },
+    { key: 'f2', action: () => {
+      setPaymentMethod('esewa');
+    }, description: 'eSewa Payment' },
+    { key: 'f3', action: () => {
+      setPaymentMethod('khalti');
+    }, description: 'Khalti Payment' },
+    { key: 'f4', action: () => {
+      setPaymentMethod('card');
+    }, description: 'Card Payment' },
+  ];
+
+  useKeyboardShortcuts(shortcuts);
+
   return (
-    <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-8rem)]">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-full lg:h-[calc(100vh-8rem)]">
       
       {/* Left Panel: Cart & Search */}
-      <div className="flex-1 flex flex-col bg-white rounded-xl border border-medstore-border card-shadow overflow-hidden min-h-[400px]">
+      <div className="flex-1 flex flex-col bg-white rounded-xl border border-medstore-border card-shadow overflow-hidden min-h-[400px] lg:min-h-0">
         
         {/* Search Header */}
         <div className="p-4 border-b border-gray-100 bg-gray-50/50 relative z-20">
@@ -112,7 +186,7 @@ const NewSale = () => {
             
             {/* Autocomplete Dropdown */}
             {isSearchFocused && (searchTerm.length === 0 || searchTerm.length > 1) && (
-              <div className="absolute top-12 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-y-auto w-full">
+              <div className="absolute top-12 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 lg:max-h-80 overflow-y-auto w-full z-50">
                 <div className="p-2 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   {searchTerm ? 'Search Results' : 'Available Medicines'}
                 </div>
@@ -234,11 +308,11 @@ const NewSale = () => {
       {/* Right Panel: Summary */}
       <div className="w-full lg:w-96 flex flex-col shrink-0">
         <div className="bg-white rounded-xl border border-medstore-border card-shadow flex flex-col lg:sticky lg:top-6">
-          <div className="p-5 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900">Order Summary</h2>
+          <div className="p-4 lg:p-5 border-b border-gray-100">
+            <h2 className="text-lg lg:text-xl font-bold text-gray-900">Order Summary</h2>
           </div>
           
-          <div className="p-5 border-b border-gray-100 bg-teal-50/30">
+          <div className="p-4 lg:p-5 border-b border-gray-100 bg-teal-50/30">
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-bold text-gray-500 uppercase flex items-center">
                 <Users size={14} className="mr-1.5" /> Sold By
@@ -260,11 +334,18 @@ const NewSale = () => {
             </select>
           </div>
           
-          <div className="p-5 space-y-4 flex-1">
+          <div className="p-4 lg:p-5 space-y-4 flex-1">
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-500">Subtotal ({cart.length} items)</span>
-              <span className="font-semibold text-gray-900">{formatNPR(subtotal)}</span>
+              <span className="font-semibold text-gray-900 text-base lg:text-lg">{formatNPR(gstBreakdown.taxable + gstBreakdown.exempt)}</span>
             </div>
+            
+            {totalGST > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">GST (13%)</span>
+                <span className="font-semibold text-green-600 text-base lg:text-lg">{formatNPR(totalGST)}</span>
+              </div>
+            )}
             
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-500">Discount (NPR)</span>
@@ -283,9 +364,21 @@ const NewSale = () => {
             <hr className="border-gray-100 my-2" />
             
             <div className="flex justify-between items-end">
-              <span className="text-base font-semibold text-gray-900">Total</span>
-              <span className="text-2xl sm:text-3xl font-bold text-medstore-teal tracking-tight">{formatNPR(total)}</span>
+              <span className="text-base lg:text-lg font-semibold text-gray-900">Total</span>
+              <span className="text-xl lg:text-2xl sm:text-3xl font-bold text-medstore-teal tracking-tight">{formatNPR(total)}</span>
             </div>
+
+            {totalGST > 0 && (
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center text-xs text-green-800">
+                  <Receipt size={14} className="mr-2" />
+                  <span className="font-medium">Tax Invoice</span>
+                </div>
+                <div className="mt-1 text-xs text-green-700">
+                  GST applicable as per Nepal tax regulations
+                </div>
+              </div>
+            )}
 
             <div className="pt-4 space-y-3">
               <span className="text-sm font-medium text-gray-700 block mb-2">Payment Method</span>
@@ -300,7 +393,7 @@ const NewSale = () => {
                     key={pm.id}
                     onClick={() => setPaymentMethod(pm.id)}
                     className={`
-                      py-2.5 px-3 border rounded-lg text-sm font-semibold transition-all flex justify-center items-center
+                      py-2 lg:py-2.5 px-2 lg:px-3 border rounded-lg text-xs lg:text-sm font-semibold transition-all flex justify-center items-center
                       ${paymentMethod === pm.id 
                         ? pm.color + ' ring-1 opacity-100 shadow-sm' 
                         : 'bg-white border-gray-200 text-gray-500 opacity-60 hover:opacity-100 hover:bg-gray-50'
@@ -314,16 +407,16 @@ const NewSale = () => {
             </div>
           </div>
 
-          <div className="p-5 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
+          <div className="p-4 lg:p-5 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
              <Button 
                size="lg" 
                fullWidth 
-               className="h-14 text-base font-bold shadow-md shadow-teal-500/20"
+               className="h-12 lg:h-14 text-sm lg:text-base font-bold shadow-md shadow-teal-500/20"
                onClick={handleCheckout}
                isLoading={isSubmitting}
                disabled={cart.length === 0}
              >
-               <ShieldCheck size={20} className="mr-2" />
+               <ShieldCheck size={18} className="mr-2" />
                COMPLETE SALE
              </Button>
              

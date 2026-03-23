@@ -105,7 +105,7 @@ const DamageLog = () => {
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)}
         title="Record Stock Damage / Expiry"
-        maxWidth="max-w-2xl"
+        maxWidth="max-w-2xl sm:max-w-2xl"
       >
         <AddDamageForm onSuccess={() => setIsAddModalOpen(false)} />
       </Modal>
@@ -230,7 +230,7 @@ const AddDamageForm = ({ onSuccess }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-500 uppercase">Reason</label>
-              <select {...register('reason')} className="w-full p-2 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-medstore-teal">
+              <select {...register('reason')} className="w-full p-2 sm:p-3 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-medstore-teal">
                  <option value="damaged">Damaged</option>
                  <option value="expired">Expired</option>
                  <option value="lost">Lost</option>
@@ -242,12 +242,12 @@ const AddDamageForm = ({ onSuccess }) => {
             <label className="text-xs font-bold text-gray-500 uppercase">Notes (Optional)</label>
             <textarea 
               {...register('notes')}
-              className="w-full p-2 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-medstore-teal resize-none"
+              className="w-full p-2 sm:p-3 bg-gray-50 border border-gray-300 rounded-lg text-sm outline-none focus:ring-1 focus:ring-medstore-teal resize-none"
               rows={2}
               placeholder="Additional notes..."
             />
           </div>
-          <Button type="submit" variant="danger" fullWidth isLoading={mutation.isPending}>
+          <Button type="submit" variant="danger" fullWidth isLoading={mutation.isPending} className="py-3 sm:py-4">
             <Save size={18} className="mr-2" /> Confirm Write-off
           </Button>
         </div>

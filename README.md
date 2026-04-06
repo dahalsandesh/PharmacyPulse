@@ -1,4 +1,4 @@
-# PharmacyPulse (MedStore)
+# PharmacyPulse (MedStore) 
 
 A modern, multi-tenant Pharmacy Management System built for pharmacies in Nepal. Designed to combat stock disparities, track expiries, handle point-of-sale FIFO billing, and provide real-time profit and damage analytics.
 
